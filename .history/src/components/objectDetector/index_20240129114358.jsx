@@ -49,20 +49,57 @@ const SelectButton = styled.button`
   }
 `;
 
+const TagetBox = styled.div`
+    position: absolute;
+    left: ${({x}) => x + "px"};+
+    top: ${({y}) => y + "px"};
+    width: ${({width}) => width + "px"};
+    height: ${({height}) => height + "px"};
+
+    border: 4px solid red;
+    background-color: transparent;
+    z-index: 20;
+
+    &::before{
+      content: "${({ classType, score }) => `${classType} ${score.toFixed(2)}` }";
+      color: red;
+      font-weight: 500;
+      font-size: 17px;
+      position: absolute;
+      top: -1.5rem;
+      left: -5px;
+    }
+`;
+
 
 
 export function ObjectDetector(props) {
 
   const fileInputRef = useRef();
+  const imageRef =useRef();
   const [imgData, setImage] = useState(null);
+  const [predictions, setpredictions] = useState(null);
+
+  const isEmptyPredictions = !predictions || predictions.length === 0;
 
  const openfilePicker =  () => {
     if(fileInputRef.current) fileInputRef.current.click();
  }
 
+  const normalizePredictions = (predictions) => {
+    if(!predictions) return [] ;
+    return predictions.map((predictions) => {
+
+      
+
+    })
+  }
+
   const detectObjectImage = async (imageElement) => {
     const model = await cocoSsd.load({});
     const predictions = await model.detect(imageElement , 6);
+    setpredictions(predictions);
+    console.log("xin chao: ", predictions)
   }
 
   const readImage = (file) => {
@@ -80,13 +117,28 @@ export function ObjectDetector(props) {
     const imgData = await readImage(file);
     setImage(imgData);
 
+    const imageElement = document.createElement("img");
+    imageElement.src = imgData;
 
-
+    imageElement.onload = async () => {
+      const imgSize = {width: imageElement.width, height: imageElement.height };
+      await detectObjectImage(imageElement, imgSize);
+    }
  }
 
   return <ObjectDetectorContainer>
     <DetectorContainer>
-    {imgData && <TargetImg src={imgData}/>} 
+    {imgData && <TargetImg src={imgData}  ref={imageRef}/>} 
+    {!isEmptyPredictions && predictions.map((predictions, idx) => (
+      <TagetBox key={idx} 
+      left={predictions.bbox[0]}
+       top={predictions.bbox[1]} 
+       width={predictions.bbox[2]} 
+       height={predictions.bbox[4]} 
+       classType={predictions.class}
+       score={predictions.score} 
+       />
+    ))}
     </DetectorContainer>
     <HiddenFileInput type="file" ref={fileInputRef}  onChange={onSelectImage}/>
     <SelectButton onClick={openfilePicker}>
